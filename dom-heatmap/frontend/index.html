@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flyer DOM Heat Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+        <header>
+            <div class="symbol-info">
+                <select id="symbol-select" class="symbol-select">
+                    <!-- User requested TMPV only -->
+                    <option value="NSE:TATAMOTORS-EQ">TMPV (NSE:TATAMOTORS-EQ)</option>
+                </select>
+                <span class="status-indicator" id="connection-status">Connecting...</span>
+            </div>
+            <div class="controls">
+                <button id="reset-view">Centers</button>
+            </div>
+        </header>
+
+        <main class="dom-container">
+            <!-- Canvas Layer for Heatmap -->
+            <canvas id="heatmap-canvas"></canvas>
+
+            <!-- DOM Ladder Overlay -->
+            <div class="ladder-overlay" id="ladder">
+                <div class="ladder-header">
+                    <div class="col-bid">Bid Size</div>
+                    <div class="col-price">Price</div>
+                    <div class="col-ask">Ask Size</div>
+                </div>
+                <!-- Dynamic Content injected by JS -->
+                <div id="ladder-rows"></div>
+            </div>
+
+            <!-- Order Entry Panel (Hidden by default) -->
+            <div id="order-panel" class="hidden">
+                <div class="order-form">
+                    <h3>Place Order</h3>
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="number" id="order-price" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Size</label>
+                        <input type="number" id="order-size" value="100" step="10">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-buy">Buy</button>
+                        <button class="btn-sell">Sell</button>
+                    </div>
+                    <button class="btn-cancel" onclick="closeOrderPanel()">Cancel</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
