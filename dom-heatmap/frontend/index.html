@@ -48,6 +48,10 @@
                 <div class="order-form">
                     <h3>Place Order</h3>
                     <div class="form-group">
+                        <label>Symbol</label>
+                        <input type="text" id="order-symbol" readonly>
+                    </div>
+                    <div class="form-group">
                         <label>Price</label>
                         <input type="number" id="order-price" readonly>
                     </div>
@@ -55,10 +59,25 @@
                         <label>Size</label>
                         <input type="number" id="order-size" value="100" step="10">
                     </div>
-                    <div class="form-actions">
-                        <button class="btn-buy">Buy</button>
-                        <button class="btn-sell">Sell</button>
+                    <div class="form-group">
+                        <label>Order Type</label>
+                        <select id="order-type">
+                            <option value="LIMIT">Limit</option>
+                            <option value="MARKET">Market</option>
+                        </select>
                     </div>
+                    <div class="form-group">
+                        <label>Product</label>
+                        <select id="order-product">
+                            <option value="MIS">MIS</option>
+                            <option value="CNC">CNC</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-buy" id="btn-buy">Buy</button>
+                        <button class="btn-sell" id="btn-sell">Sell</button>
+                    </div>
+                    <div class="order-status" id="order-status" aria-live="polite"></div>
                     <button class="btn-cancel" onclick="closeOrderPanel()">Cancel</button>
                 </div>
             </div>

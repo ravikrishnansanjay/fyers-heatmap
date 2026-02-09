@@ -1,10 +1,25 @@
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Literal
 from enum import Enum
 
 class Side(str, Enum):
     BID = "bid"
     ASK = "ask"
+
+class OrderSide(str, Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+
+class FlatTradeOrderRequest(BaseModel):
+    symbol: str
+    side: OrderSide
+    quantity: int
+    order_type: Literal["LIMIT", "MARKET"] = "LIMIT"
+    price: Optional[float] = None
+    product_type: str = "MIS"
+    validity: str = "DAY"
+    disclosed_quantity: Optional[int] = None
+    remarks: Optional[str] = None
 
 class OrderUpdate(BaseModel):
     price: float

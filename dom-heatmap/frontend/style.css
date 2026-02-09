@@ -247,3 +247,17 @@ canvas#heatmap-canvas {
     cursor: pointer;
     margin-left: 10px;
 }
+
+.order-status {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #8b949e;
+}
+
+.order-status[data-status="success"] {
+    color: #7ee787;
+}
+
+.order-status[data-status="error"] {
+    color: #ff7b72;
+}
