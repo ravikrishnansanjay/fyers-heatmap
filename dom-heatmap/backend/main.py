@@ -142,9 +142,17 @@ def place_order(order: FlatTradeOrderRequest):
     try:
         with request.urlopen(req, timeout=15) as response:
             response_body = response.read()
-            response_data = json.loads(response_body) if response_body else {}
+            response_text = response_body.decode("utf-8") if response_body else ""
+            try:
+                response_data = json.loads(response_text) if response_text else {}
+            except json.JSONDecodeError:
+                response_data = {"raw": response_text}
     except error.HTTPError as exc:
-        detail = exc.read().decode("utf-8") if exc.fp else str(exc)
+        detail_text = exc.read().decode("utf-8") if exc.fp else str(exc)
+        try:
+            detail = json.loads(detail_text)
+        except json.JSONDecodeError:
+            detail = detail_text
         raise HTTPException(status_code=exc.code, detail=detail) from exc
     except error.URLError as exc:
         raise HTTPException(status_code=502, detail=f"Order request failed: {exc}") from exc

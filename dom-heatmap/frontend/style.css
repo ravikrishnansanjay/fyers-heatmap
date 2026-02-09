@@ -261,3 +261,7 @@ canvas#heatmap-canvas {
 .order-status[data-status="error"] {
     color: #ff7b72;
 }
+
+.order-status[data-status="pending"] {
+    color: #d29922;
+}

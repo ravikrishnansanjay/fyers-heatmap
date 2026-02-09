@@ -1,7 +1,6 @@
 const CONFIG = {
     // symbol and wsUrl are now dynamic
     rowHeight: 24,
-    rowHeight: 24,
     visibleRows: 60, // How many rows to render around center
     centerPrice: 780.0 // Approximate TMPV price
 };
@@ -257,7 +256,8 @@ async function submitOrder(side) {
         product_type: orderProduct.value
     };
 
-    setOrderStatus('Submitting order...');
+    orderStatus.textContent = 'Submitting order...';
+    orderStatus.dataset.status = 'pending';
 
     try {
         const response = await fetch('/api/orders', {
