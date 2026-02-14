@@ -37,7 +37,6 @@ app.add_middleware(
 )
 
 from fastapi.staticfiles import StaticFiles
-import os
 
 # Mount static files
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")

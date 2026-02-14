@@ -174,7 +174,8 @@ function connectWebSocket(symbol) {
         socket.close();
     }
 
-    const wsUrl = `ws://${window.location.host}/ws/dom/${symbol}`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${wsProtocol}://${window.location.host}/ws/dom/${symbol}`;
     console.log(`Connecting to ${wsUrl}...`);
     statusEl.textContent = 'Connecting...';
     statusEl.classList.remove('connected');
@@ -265,9 +266,19 @@ async function submitOrder(side) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        const data = await response.json();
+        const responseText = await response.text();
+        let data = {};
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch (parseError) {
+            data = { detail: responseText };
+        }
+
         if (!response.ok) {
-            throw new Error(data.detail || 'Order failed.');
+            const detailMessage = typeof data.detail === 'string'
+                ? data.detail
+                : JSON.stringify(data.detail || data);
+            throw new Error(detailMessage || 'Order failed.');
         }
         setOrderStatus('Order submitted successfully.');
     } catch (error) {
@@ -276,8 +287,14 @@ async function submitOrder(side) {
 }
 
 orderType.addEventListener('change', updatePriceFieldState);
-buyButton.addEventListener('click', () => submitOrder('BUY'));
-sellButton.addEventListener('click', () => submitOrder('SELL'));
+buyButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    submitOrder('BUY');
+});
+sellButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    submitOrder('SELL');
+});
 
 function closeOrderPanel() {
     orderPanel.classList.add('hidden');
