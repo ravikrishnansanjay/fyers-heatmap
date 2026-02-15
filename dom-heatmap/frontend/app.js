@@ -1,7 +1,6 @@
 const CONFIG = {
     // symbol and wsUrl are now dynamic
     rowHeight: 24,
-    rowHeight: 24,
     visibleRows: 60, // How many rows to render around center
     centerPrice: 780.0 // Approximate TMPV price
 };
@@ -101,8 +100,10 @@ class DomLadder {
 
         row.addEventListener('click', () => {
             console.log(`Clicked price ${price}`);
-            document.getElementById('order-panel').classList.remove('hidden');
-            document.getElementById('order-price').value = price;
+            orderPanel.classList.remove('hidden');
+            orderPrice.value = price;
+            orderSymbol.value = symbolSelect.value;
+            orderStatus.textContent = '';
         });
 
         this.ladderEl.appendChild(row);
@@ -158,13 +159,23 @@ let socket = null;
 const statusEl = document.getElementById('connection-status');
 const ladder = new DomLadder();
 const symbolSelect = document.getElementById('symbol-select');
+const orderPanel = document.getElementById('order-panel');
+const orderSymbol = document.getElementById('order-symbol');
+const orderPrice = document.getElementById('order-price');
+const orderSize = document.getElementById('order-size');
+const orderType = document.getElementById('order-type');
+const orderProduct = document.getElementById('order-product');
+const orderStatus = document.getElementById('order-status');
+const buyButton = document.getElementById('btn-buy');
+const sellButton = document.getElementById('btn-sell');
 
 function connectWebSocket(symbol) {
     if (socket) {
         socket.close();
     }
 
-    const wsUrl = `ws://${window.location.host}/ws/dom/${symbol}`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${wsProtocol}://${window.location.host}/ws/dom/${symbol}`;
     console.log(`Connecting to ${wsUrl}...`);
     statusEl.textContent = 'Connecting...';
     statusEl.classList.remove('connected');
@@ -191,6 +202,7 @@ function connectWebSocket(symbol) {
 
 // Initial Connection
 connectWebSocket(symbolSelect.value);
+orderSymbol.value = symbolSelect.value;
 
 // Handle Symbol Change
 symbolSelect.addEventListener('change', (e) => {
@@ -205,8 +217,87 @@ symbolSelect.addEventListener('change', (e) => {
     CONFIG.symbol = newSymbol;
 
     connectWebSocket(newSymbol);
+    orderSymbol.value = newSymbol;
+});
+
+function setOrderStatus(message, isError = false) {
+    orderStatus.textContent = message;
+    orderStatus.dataset.status = isError ? 'error' : 'success';
+}
+
+function updatePriceFieldState() {
+    if (orderType.value === 'MARKET') {
+        orderPrice.setAttribute('readonly', 'readonly');
+        orderPrice.value = '';
+    } else {
+        orderPrice.removeAttribute('readonly');
+    }
+}
+
+async function submitOrder(side) {
+    const quantity = Number(orderSize.value);
+    const price = orderType.value === 'MARKET' ? null : Number(orderPrice.value);
+
+    if (!quantity || quantity <= 0) {
+        setOrderStatus('Enter a valid quantity.', true);
+        return;
+    }
+
+    if (orderType.value === 'LIMIT' && (!price || price <= 0)) {
+        setOrderStatus('Enter a valid price for limit orders.', true);
+        return;
+    }
+
+    const payload = {
+        symbol: symbolSelect.value,
+        side,
+        quantity,
+        order_type: orderType.value,
+        price,
+        product_type: orderProduct.value
+    };
+
+    orderStatus.textContent = 'Submitting order...';
+    orderStatus.dataset.status = 'pending';
+
+    try {
+        const response = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const responseText = await response.text();
+        let data = {};
+        try {
+            data = responseText ? JSON.parse(responseText) : {};
+        } catch (parseError) {
+            data = { detail: responseText };
+        }
+
+        if (!response.ok) {
+            const detailMessage = typeof data.detail === 'string'
+                ? data.detail
+                : JSON.stringify(data.detail || data);
+            throw new Error(detailMessage || 'Order failed.');
+        }
+        setOrderStatus('Order submitted successfully.');
+    } catch (error) {
+        setOrderStatus(error.message || 'Order failed.', true);
+    }
+}
+
+orderType.addEventListener('change', updatePriceFieldState);
+buyButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    submitOrder('BUY');
+});
+sellButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    submitOrder('SELL');
 });
 
 function closeOrderPanel() {
-    document.getElementById('order-panel').classList.add('hidden');
+    orderPanel.classList.add('hidden');
 }
+
+updatePriceFieldState();

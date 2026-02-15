@@ -3,11 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import asyncio
 from typing import List, Optional, Dict
+import json
+from urllib import request, error
 
 # from .flyer_adapter import MockFlyerClient
 from .fyers_client import FyersClient
 from .heatmap_engine import HeatmapEngine
-from .models import DomUpdate
+from .models import DomUpdate, FlatTradeOrderRequest
 
 # Configuration (from User Request)
 from dotenv import load_dotenv
@@ -20,6 +22,9 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 FYERS_APP_ID = os.getenv("FYERS_APP_ID")
 FYERS_SECRET_ID = os.getenv("FYERS_SECRET_ID")
 REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:8000/auth-callback")
+FLATTRADE_PI_ORDER_URL = os.getenv("FLATTRADE_PI_ORDER_URL")
+FLATTRADE_PI_API_KEY = os.getenv("FLATTRADE_PI_API_KEY")
+FLATTRADE_PI_ACCESS_TOKEN = os.getenv("FLATTRADE_PI_ACCESS_TOKEN")
 
 app = FastAPI()
 
@@ -32,7 +37,6 @@ app.add_middleware(
 )
 
 from fastapi.staticfiles import StaticFiles
-import os
 
 # Mount static files
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
@@ -104,6 +108,55 @@ def auth_callback(auth_code: Optional[str] = None):
         except Exception as e:
             return {"status": "error", "message": str(e)}
     return {"status": "error", "message": "No auth code provided"}
+
+@app.post("/api/orders")
+def place_order(order: FlatTradeOrderRequest):
+    if not FLATTRADE_PI_ORDER_URL:
+        raise HTTPException(status_code=500, detail="FLATTRADE_PI_ORDER_URL is not configured.")
+
+    if order.order_type == "LIMIT" and order.price is None:
+        raise HTTPException(status_code=422, detail="Price is required for LIMIT orders.")
+
+    payload = {
+        "symbol": order.symbol,
+        "side": order.side.value,
+        "quantity": order.quantity,
+        "order_type": order.order_type,
+        "price": order.price,
+        "product_type": order.product_type,
+        "validity": order.validity,
+        "disclosed_quantity": order.disclosed_quantity,
+        "remarks": order.remarks,
+    }
+
+    headers = {"Content-Type": "application/json"}
+    if FLATTRADE_PI_API_KEY:
+        headers["X-API-Key"] = FLATTRADE_PI_API_KEY
+    if FLATTRADE_PI_ACCESS_TOKEN:
+        headers["Authorization"] = f"Bearer {FLATTRADE_PI_ACCESS_TOKEN}"
+
+    data = json.dumps(payload).encode("utf-8")
+    req = request.Request(FLATTRADE_PI_ORDER_URL, data=data, headers=headers, method="POST")
+
+    try:
+        with request.urlopen(req, timeout=15) as response:
+            response_body = response.read()
+            response_text = response_body.decode("utf-8") if response_body else ""
+            try:
+                response_data = json.loads(response_text) if response_text else {}
+            except json.JSONDecodeError:
+                response_data = {"raw": response_text}
+    except error.HTTPError as exc:
+        detail_text = exc.read().decode("utf-8") if exc.fp else str(exc)
+        try:
+            detail = json.loads(detail_text)
+        except json.JSONDecodeError:
+            detail = detail_text
+        raise HTTPException(status_code=exc.code, detail=detail) from exc
+    except error.URLError as exc:
+        raise HTTPException(status_code=502, detail=f"Order request failed: {exc}") from exc
+
+    return {"status": "submitted", "data": response_data}
 
 @app.websocket("/ws/dom/{symbol}")
 async def websocket_endpoint(websocket: WebSocket, symbol: str):

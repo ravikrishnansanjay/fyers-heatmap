@@ -5,3 +5,4 @@ pydantic
 numpy
 pandas
 fyers-apiv3
+python-dotenv
